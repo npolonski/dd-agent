@@ -26,6 +26,7 @@ from urlparse import urlparse
 from util import check_yaml, config_to_yaml
 from utils.platform import Platform, get_os
 from utils.proxy import get_proxy
+from utils.sdk import load_manifest
 from utils.service_discovery.config import extract_agent_config
 from utils.service_discovery.config_stores import CONFIG_FROM_FILE, TRACE_CONFIG
 from utils.service_discovery.sd_backend import get_sd_backend, AUTO_CONFIG_DIR, SD_BACKENDS
@@ -948,7 +949,12 @@ def _initialize_check(check_config, check_name, check_class, agentConfig):
     except Exception as e:
         log.exception('Unable to initialize check %s' % check_name)
         traceback_message = traceback.format_exc()
-        return {}, {check_name: {'error': e, 'traceback': traceback_message}}
+        frames = inspect.getinnerframes(sys.exc_info()[2])
+        manifest_path = os.path.join(os.path.basedir(frames[-1][1]), 'manifest.json')
+        manifest = load_manifest(manifest_path)
+        check_version = manifest.get('version', 'unknown') if manifest else AGENT_VERSION
+
+        return {}, {check_name: {'error': e, 'traceback': traceback_message, 'version': check_version}}
     else:
         return {check_name: check}, {}
 
