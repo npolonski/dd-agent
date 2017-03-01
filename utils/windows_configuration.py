@@ -31,6 +31,33 @@ def get_registry_conf(agentConfig):
 
     return registry_conf
 
+def subkeys(key):
+    i = 0
+    while True:
+        try:
+            subkey = _winreg.EnumKey(key, i)
+            yield subkey
+            i+=1
+        except WindowsError:
+            break
+
+def get_sdk_integration_paths():
+    integrations = {}
+    integrations_key = "{}\\{}".format(WINDOWS_REG_PATH, "Integrations")
+    try:
+        with _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, integrations_key) as reg_key:
+            for integration_subkey in subkeys(reg_key):
+                integration_name = integration_subkey.split('\\')[-1]
+                try:
+                    with _winreg.OpenKey(reg_key, integration_subkey) as reg_integration_key:
+                        integration_path = _winreg.QueryValueEx(reg_integration_key, "InstallPath")[0]
+                        integrations[integration_name] = integration_path
+                except WindowsError as e:
+                    log.error('Unable to get keys from Registry for %s: %s', integration_name, e)
+    except WindowsError as e:
+        log.error('Unable to get config keys from Registry: %s', e)
+
+    return integrations
 
 def update_conf_file(registry_conf, config_path):
     config_dir = os.path.dirname(config_path)
