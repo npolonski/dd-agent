@@ -186,6 +186,11 @@ def _confd_path(directory):
 
 
 def _checksd_path(directory):
+    path_override = os.environ.get('CHECKSD_OVERRIDE')
+    if path_override and os.path.exists(path_override):
+        return path_override
+
+    # this is deprecated in testing on versions after SDK (5.12.0)
     path = os.path.join(directory, 'checks.d')
     if os.path.exists(path):
         return path
